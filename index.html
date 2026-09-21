@@ -175,6 +175,33 @@
         </section>
       </main>
 
+      <audio
+        id="ambientMusic"
+        src="assets/musicword-flowers-dance-331474.mp3"
+        preload="metadata"
+        aria-hidden="true"
+      ></audio>
+
+      <button
+        class="music-control is-paused"
+        id="musicControl"
+        type="button"
+        disabled
+        aria-label="Reanudar música"
+        aria-pressed="false"
+      >
+        <svg viewBox="0 0 28 28" aria-hidden="true">
+          <g class="music-control__playing-icon">
+            <path class="music-control__note" d="M13 5.3v12.1a3.4 3.4 0 1 1-1.8-3V7.7l9-2.1v8.1a3.4 3.4 0 1 1-1.8-3V3.4Z" />
+            <path class="music-control__state" d="M21.4 18.2h1.9v5.1h-1.9Zm3.1 0h1.9v5.1h-1.9Z" />
+          </g>
+          <g class="music-control__paused-icon">
+            <path class="music-control__note" d="M13 5.3v12.1a3.4 3.4 0 1 1-1.8-3V7.7l9-2.1v8.1a3.4 3.4 0 1 1-1.8-3V3.4Z" />
+            <path class="music-control__state" d="m21.1 17.8 5.2 3-5.2 3Z" />
+          </g>
+        </svg>
+      </button>
+
       <div class="ambient-petals" id="ambientPetals" aria-hidden="true"></div>
     </div>
 

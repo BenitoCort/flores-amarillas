@@ -8,6 +8,11 @@ const CONFIG = Object.freeze({
   PETAL_REGEN_MAX: 3000,
   FLOWER_COOLDOWN: 3400,
   SECRET_NOTE_DURATION: 6200,
+  MUSIC_VOLUME: 0.18,
+  MUSIC_FADE_IN: 2000,
+  MUSIC_LOOP_FADE: 850,
+  MUSIC_SEGMENT_START: 0,
+  MUSIC_SEGMENT_DURATION: 30,
 });
 
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -58,12 +63,24 @@ const elements = {
   closeNote: document.querySelector("#closeNote"),
   flowerInstruction: document.querySelector("#flowerInstruction"),
   ambientPetals: document.querySelector("#ambientPetals"),
+  ambientMusic: document.querySelector("#ambientMusic"),
+  musicControl: document.querySelector("#musicControl"),
 };
 
 let experienceOpened = false;
 let bouquetReady = false;
 let noteTimer = null;
 let ambientTimer = null;
+let musicStarted = false;
+let musicShouldPlay = false;
+let musicLoopTransition = false;
+let musicAudioContext = null;
+let musicSourceNode = null;
+let musicGainNode = null;
+let musicGraphUnavailable = false;
+let musicFadeFrame = null;
+let musicFadeTimer = null;
+let musicFadeToken = 0;
 
 function randomBetween(min, max) {
   return Math.random() * (max - min) + min;
@@ -256,9 +273,250 @@ function createSparkles() {
   });
 }
 
+function setupMusicOutput() {
+  if (musicGainNode || musicGraphUnavailable) return;
+
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+
+  // El volumen nativo es más confiable al abrir el proyecto directamente con file://.
+  if (!AudioContextClass || window.location.protocol === "file:") {
+    musicGraphUnavailable = true;
+    elements.ambientMusic.volume = 0;
+    return;
+  }
+
+  try {
+    musicAudioContext = new AudioContextClass();
+    musicSourceNode = musicAudioContext.createMediaElementSource(elements.ambientMusic);
+    musicGainNode = musicAudioContext.createGain();
+    musicSourceNode.connect(musicGainNode);
+    musicGainNode.connect(musicAudioContext.destination);
+    musicGainNode.gain.value = 0;
+    elements.ambientMusic.volume = 1;
+  } catch (error) {
+    musicGraphUnavailable = true;
+    musicAudioContext = null;
+    musicSourceNode = null;
+    musicGainNode = null;
+    elements.ambientMusic.volume = 0;
+  }
+}
+
+function resumeMusicOutput() {
+  if (musicAudioContext?.state === "suspended") {
+    musicAudioContext.resume().catch(() => {});
+  }
+}
+
+function cancelMusicFade() {
+  musicFadeToken += 1;
+
+  if (musicFadeFrame) {
+    window.cancelAnimationFrame(musicFadeFrame);
+    musicFadeFrame = null;
+  }
+
+  if (musicFadeTimer) {
+    window.clearTimeout(musicFadeTimer);
+    musicFadeTimer = null;
+  }
+
+  if (musicGainNode && musicAudioContext) {
+    const gain = musicGainNode.gain;
+    const now = musicAudioContext.currentTime;
+
+    if (typeof gain.cancelAndHoldAtTime === "function") {
+      gain.cancelAndHoldAtTime(now);
+    } else {
+      const currentValue = gain.value;
+      gain.cancelScheduledValues(now);
+      gain.setValueAtTime(currentValue, now);
+    }
+  }
+}
+
+function setMusicLevel(level) {
+  const safeLevel = Math.max(0, Math.min(1, level));
+
+  if (musicGainNode) {
+    musicGainNode.gain.value = safeLevel;
+  } else {
+    elements.ambientMusic.volume = safeLevel;
+  }
+}
+
+function fadeMusicTo(targetLevel, duration, onComplete) {
+  cancelMusicFade();
+  const token = musicFadeToken;
+  const safeTarget = Math.max(0, Math.min(1, targetLevel));
+
+  if (musicGainNode && musicAudioContext) {
+    const gain = musicGainNode.gain;
+    const now = musicAudioContext.currentTime;
+    gain.setValueAtTime(gain.value, now);
+    gain.linearRampToValueAtTime(safeTarget, now + duration / 1000);
+
+    musicFadeTimer = window.setTimeout(() => {
+      if (token !== musicFadeToken) return;
+      musicFadeTimer = null;
+      if (onComplete) onComplete();
+    }, duration + 30);
+    return;
+  }
+
+  const initialLevel = elements.ambientMusic.volume;
+  const startedAt = performance.now();
+
+  const updateVolume = (now) => {
+    if (token !== musicFadeToken) return;
+    const progress = Math.min((now - startedAt) / duration, 1);
+    const easedProgress = 0.5 - Math.cos(Math.PI * progress) / 2;
+    elements.ambientMusic.volume = initialLevel + (safeTarget - initialLevel) * easedProgress;
+
+    if (progress < 1) {
+      musicFadeFrame = window.requestAnimationFrame(updateVolume);
+    } else {
+      musicFadeFrame = null;
+      if (onComplete) onComplete();
+    }
+  };
+
+  musicFadeFrame = window.requestAnimationFrame(updateVolume);
+}
+
+function updateMusicControl() {
+  const label = musicShouldPlay ? "Pausar música" : "Reanudar música";
+  elements.musicControl.classList.toggle("is-paused", !musicShouldPlay);
+  elements.musicControl.setAttribute("aria-label", label);
+  elements.musicControl.setAttribute("aria-pressed", String(musicShouldPlay));
+  elements.musicControl.title = label;
+}
+
+function handleMusicPlayFailure() {
+  musicShouldPlay = false;
+  musicLoopTransition = false;
+  updateMusicControl();
+}
+
+function playMusicWithFade(fadeDuration) {
+  resumeMusicOutput();
+  const playRequest = elements.ambientMusic.play();
+  const beginFade = () => {
+    if (!musicShouldPlay) return;
+    fadeMusicTo(CONFIG.MUSIC_VOLUME, fadeDuration);
+    updateMusicControl();
+  };
+
+  if (playRequest && typeof playRequest.then === "function") {
+    playRequest.then(beginFade).catch(handleMusicPlayFailure);
+  } else {
+    beginFade();
+  }
+}
+
+function startAmbientMusic() {
+  musicStarted = true;
+  musicShouldPlay = true;
+  musicLoopTransition = false;
+  setupMusicOutput();
+  cancelMusicFade();
+  setMusicLevel(0);
+
+  try {
+    elements.ambientMusic.currentTime = CONFIG.MUSIC_SEGMENT_START;
+  } catch (error) {
+    // La pista ya comienza en 0; Safari puede esperar a loadedmetadata para aceptar seeking.
+  }
+
+  elements.musicControl.disabled = false;
+  elements.musicControl.classList.add("is-visible");
+  updateMusicControl();
+  playMusicWithFade(CONFIG.MUSIC_FADE_IN);
+}
+
+function pauseAmbientMusic() {
+  musicShouldPlay = false;
+  musicLoopTransition = false;
+  updateMusicControl();
+
+  fadeMusicTo(0, 360, () => {
+    if (!musicShouldPlay) elements.ambientMusic.pause();
+  });
+}
+
+function resumeAmbientMusic() {
+  const segmentEnd = getMusicSegmentEnd();
+  musicShouldPlay = true;
+  musicLoopTransition = false;
+  cancelMusicFade();
+  setMusicLevel(0);
+
+  if (elements.ambientMusic.currentTime >= segmentEnd - 0.15) {
+    elements.ambientMusic.currentTime = CONFIG.MUSIC_SEGMENT_START;
+  }
+
+  updateMusicControl();
+  playMusicWithFade(700);
+}
+
+function toggleAmbientMusic() {
+  if (!musicStarted) return;
+
+  if (musicShouldPlay) {
+    pauseAmbientMusic();
+  } else {
+    resumeAmbientMusic();
+  }
+}
+
+function getMusicSegmentEnd() {
+  const requestedEnd = CONFIG.MUSIC_SEGMENT_START + CONFIG.MUSIC_SEGMENT_DURATION;
+  const trackDuration = elements.ambientMusic.duration;
+  return Number.isFinite(trackDuration) && trackDuration > 0
+    ? Math.min(requestedEnd, trackDuration)
+    : requestedEnd;
+}
+
+function restartMusicSegment() {
+  if (musicLoopTransition || !musicShouldPlay) return;
+  musicLoopTransition = true;
+
+  fadeMusicTo(0, CONFIG.MUSIC_LOOP_FADE, () => {
+    if (!musicShouldPlay) {
+      musicLoopTransition = false;
+      return;
+    }
+
+    elements.ambientMusic.currentTime = CONFIG.MUSIC_SEGMENT_START;
+    resumeMusicOutput();
+    const playRequest = elements.ambientMusic.play();
+    const fadeBackIn = () => {
+      fadeMusicTo(CONFIG.MUSIC_VOLUME, CONFIG.MUSIC_LOOP_FADE, () => {
+        musicLoopTransition = false;
+      });
+    };
+
+    if (playRequest && typeof playRequest.then === "function") {
+      playRequest.then(fadeBackIn).catch(handleMusicPlayFailure);
+    } else {
+      fadeBackIn();
+    }
+  });
+}
+
+function monitorMusicSegment() {
+  if (!musicShouldPlay || musicLoopTransition || elements.ambientMusic.paused) return;
+
+  const fadeWindow = CONFIG.MUSIC_LOOP_FADE / 1000 + 0.15;
+  if (elements.ambientMusic.currentTime >= getMusicSegmentEnd() - fadeWindow) {
+    restartMusicSegment();
+  }
+}
+
 function openExperience() {
   if (experienceOpened) return;
   experienceOpened = true;
+  startAmbientMusic();
   elements.openButton.disabled = true;
   elements.experience.setAttribute("aria-hidden", "false");
   elements.experience.style.visibility = "visible";
@@ -626,6 +884,16 @@ buildBouquet();
 elements.openButton.addEventListener("click", openExperience);
 elements.heartButton.addEventListener("click", showSecretNote);
 elements.closeNote.addEventListener("click", () => hideSecretNote({ returnFocus: true }));
+elements.musicControl.addEventListener("click", toggleAmbientMusic);
+elements.ambientMusic.addEventListener("timeupdate", monitorMusicSegment);
+elements.ambientMusic.addEventListener("error", () => {
+  musicShouldPlay = false;
+  musicLoopTransition = false;
+  elements.musicControl.disabled = true;
+  elements.musicControl.classList.add("is-paused");
+  elements.musicControl.setAttribute("aria-label", "Música no disponible");
+  elements.musicControl.title = "Música no disponible";
+});
 if (typeof prefersReducedMotion.addEventListener === "function") {
   prefersReducedMotion.addEventListener("change", handleMotionPreferenceChange);
 } else {
