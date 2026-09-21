@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta
+      name="description"
+      content="Una pequeña experiencia de flores amarillas hecha con cariño."
+    />
+    <meta name="theme-color" content="#fbf7ed" />
+    <title>Flores amarillas para ti</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Manrope:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23fbf7ed'/%3E%3Cg transform='translate(32 32)' fill='%23f3c84b'%3E%3Cellipse ry='18' rx='8' transform='rotate(0) translate(0 -13)'/%3E%3Cellipse ry='18' rx='8' transform='rotate(72) translate(0 -13)'/%3E%3Cellipse ry='18' rx='8' transform='rotate(144) translate(0 -13)'/%3E%3Cellipse ry='18' rx='8' transform='rotate(216) translate(0 -13)'/%3E%3Cellipse ry='18' rx='8' transform='rotate(288) translate(0 -13)'/%3E%3C/g%3E%3Ccircle cx='32' cy='32' r='8' fill='%23966b22'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="css/styles.css" />
+
+    <script
+      defer
+      src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"
+      referrerpolicy="no-referrer"
+    ></script>
+    <script defer src="js/app.js"></script>
+  </head>
+
+  <body>
+    <div class="page-shell">
+      <div class="background-light background-light--one" aria-hidden="true"></div>
+      <div class="background-light background-light--two" aria-hidden="true"></div>
+
+      <main class="gift" aria-labelledby="recipientName">
+        <section class="intro" id="intro" aria-label="Abrir regalo">
+          <p class="eyebrow" id="recipientName">Para ti 🌼</p>
+          <h1>Tengo algo para ti</h1>
+          <p class="intro-copy">Es pequeño, amarillo y está hecho con cariño.</p>
+          <button class="open-button" id="openButton" type="button">
+            <span>Abrir</span>
+            <span aria-hidden="true">💛</span>
+          </button>
+          <p class="hint">Toca para descubrirlo</p>
+        </section>
+
+        <section class="experience" id="experience" aria-hidden="true">
+          <div class="final-copy" id="finalCopy" aria-live="polite">
+            <span class="final-copy__mark" aria-hidden="true">✦</span>
+            <p class="final-copy__message">
+              No podía dejar que hoy te quedaras sin tus flores amarillas.
+            </p>
+            <p class="final-copy__date">21 de septiembre · Para ti 💛</p>
+          </div>
+
+          <div class="bouquet-stage" id="bouquetStage">
+            <div class="bouquet-glow" id="bouquetGlow" aria-hidden="true"></div>
+
+            <svg
+              class="bouquet"
+              id="bouquetSvg"
+              viewBox="0 0 620 650"
+              role="img"
+              aria-labelledby="bouquetTitle bouquetDescription"
+              preserveAspectRatio="xMidYMid meet"
+            >
+              <title id="bouquetTitle">Ramo animado de flores amarillas</title>
+              <desc id="bouquetDescription">
+                Un ramo de flores amarillas interactivas envuelto en papel crema. Cada flor
+                puede tocarse para soltar y regenerar sus pétalos.
+              </desc>
+
+              <defs>
+                <linearGradient id="paperLeft" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stop-color="#fffdf7" />
+                  <stop offset="1" stop-color="#e9dcc5" />
+                </linearGradient>
+                <linearGradient id="paperRight" x1="1" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="#f8f0df" />
+                  <stop offset="1" stop-color="#d9c6a8" />
+                </linearGradient>
+                <linearGradient id="paperFront" x1="0.2" y1="0" x2="0.8" y2="1">
+                  <stop offset="0" stop-color="#f4ead8" />
+                  <stop offset="1" stop-color="#ddc7a5" />
+                </linearGradient>
+                <linearGradient id="ribbonGradient" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stop-color="#dfb853" />
+                  <stop offset="1" stop-color="#b88b2e" />
+                </linearGradient>
+                <filter id="paperShadow" x="-30%" y="-30%" width="160%" height="180%">
+                  <feDropShadow dx="0" dy="12" stdDeviation="12" flood-color="#74551f" flood-opacity="0.13" />
+                </filter>
+                <filter id="softBloom" x="-80%" y="-80%" width="260%" height="260%">
+                  <feGaussianBlur stdDeviation="3" result="blur" />
+                  <feMerge>
+                    <feMergeNode in="blur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </defs>
+
+              <g class="wrapper wrapper--back" id="wrapperBack" filter="url(#paperShadow)">
+                <path
+                  d="M104 307 C155 286 222 276 307 284 L310 580 L135 441 Z"
+                  fill="url(#paperLeft)"
+                  stroke="#d6c19d"
+                  stroke-width="2"
+                />
+                <path
+                  d="M307 284 C396 274 467 286 516 307 L486 442 L310 580 Z"
+                  fill="url(#paperRight)"
+                  stroke="#ccb58e"
+                  stroke-width="2"
+                />
+                <path d="M123 319 C190 300 247 298 307 305" fill="none" stroke="#d8bf91" stroke-width="2" opacity="0.7" />
+                <path d="M307 305 C376 296 438 301 499 320" fill="none" stroke="#c8ab77" stroke-width="2" opacity="0.55" />
+              </g>
+
+              <g class="stems-layer" id="stemsLayer"></g>
+              <g class="leaves-layer" id="leavesLayer"></g>
+              <g class="flowers-layer" id="flowersLayer"></g>
+              <g class="falling-petals-layer" id="fallingPetalsLayer" aria-hidden="true"></g>
+
+              <g class="wrapper wrapper--front" id="wrapperFront">
+                <path
+                  d="M119 337 L310 586 L503 337 C486 412 459 488 421 535 L310 618 L198 535 C160 488 135 412 119 337 Z"
+                  fill="url(#paperFront)"
+                  stroke="#cdb58f"
+                  stroke-width="2"
+                />
+                <path d="M119 337 L310 586 L224 492 Z" fill="#fffaf0" opacity="0.72" />
+                <path d="M503 337 L310 586 L402 489 Z" fill="#cfb489" opacity="0.25" />
+                <path d="M197 535 Q310 565 423 535" fill="none" stroke="#b9965a" stroke-width="2" opacity="0.5" />
+
+                <g class="ribbon" id="ribbon">
+                  <path d="M171 493 Q244 471 310 494 Q378 471 449 493 L437 528 Q374 509 310 529 Q246 508 182 528 Z" fill="url(#ribbonGradient)" />
+                  <path d="M310 508 C269 472 226 469 213 493 C203 511 232 531 292 516 Z" fill="#d8ae46" stroke="#b48726" stroke-width="2" />
+                  <path d="M310 508 C352 472 395 469 408 493 C418 511 388 531 328 516 Z" fill="#c99a35" stroke="#a9791e" stroke-width="2" />
+                  <path d="M294 518 L253 583 L310 552 L334 583 L328 517 Z" fill="#c49630" opacity="0.95" />
+                  <circle cx="310" cy="509" r="19" fill="#f2d57b" stroke="#a9791e" stroke-width="2" />
+                </g>
+              </g>
+
+              <g class="sparkles-layer" id="sparklesLayer" aria-hidden="true"></g>
+            </svg>
+
+            <button
+              class="heart-button"
+              id="heartButton"
+              type="button"
+              disabled
+              aria-label="Abrir el mensaje escondido"
+              aria-expanded="false"
+              aria-controls="secretNote"
+            >
+              <svg viewBox="0 0 48 48" aria-hidden="true">
+                <path d="M24 39.2 8.8 25.1C2 18.8 6.8 7.7 16.1 9.1c3.2.5 5.8 2.4 7.9 5.3 2.1-2.9 4.7-4.8 7.9-5.3C41.2 7.7 46 18.8 39.2 25.1Z" />
+              </svg>
+            </button>
+
+            <aside class="secret-note" id="secretNote" aria-hidden="true" inert>
+              <button class="secret-note__close" id="closeNote" type="button" aria-label="Cerrar mensaje">×</button>
+              <span class="secret-note__flower" aria-hidden="true">🌼</span>
+              <p>Espero que tengas un bonito día <span aria-hidden="true">💛</span></p>
+            </aside>
+
+            <p class="flower-instruction" id="flowerInstruction">
+              Puedes tocar las flores
+            </p>
+          </div>
+        </section>
+      </main>
+
+      <div class="ambient-petals" id="ambientPetals" aria-hidden="true"></div>
+    </div>
+
+    <noscript>
+      <p class="noscript-message">Activa JavaScript para ver crecer estas flores amarillas.</p>
+    </noscript>
+  </body>
+</html>
